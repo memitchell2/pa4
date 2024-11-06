@@ -2,6 +2,7 @@
 
 module Eval (
   runEval,
+  eval,
   TermEnv,
   Value(..),
   emptyTmenv

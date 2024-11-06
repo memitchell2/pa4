@@ -9,6 +9,7 @@ import Parser
 import Pretty
 import Eval
 
+
 import Data.String (IsString(fromString))
 import qualified Data.Set as Set
 import qualified Data.Map as Map
@@ -48,13 +49,17 @@ import System.Console.Repline
 -- Define some test expressions for lists, cons, and concat operations
 testExpressions :: [L.Text]
 testExpressions = [
-    "[[1, 2], [3, 4]]",                  -- A list of lists of integers
+    "[1, 2] ++ [3, 4]",                  -- A list of lists of integers
     "0 : [1, 2, 3]",                     -- Using cons to add an element to a list
-    "[1, 2] ++ [3, 4]",                  -- Concatenating two lists
+    "[[1, 2], [3, 4]]",                  -- Concatenating two lists
     "[] ++ []",                          -- Concatenating two empty lists
     "1 : []",                            -- Cons an element to an empty list
-    "[[1, 2], [3, 4]] ++ [[5], [6, 7]]"  -- Concatenating two lists of lists
+    "[[1, 2], [3, 4]] ++ [[5], [6, 7]]", -- Concatenating two lists of lists
+    "[1] : [[2, 3], [4, 5]]",            -- Cons a single-element list to a list of lists
+    "[[1], [2, 3]] : []",                -- Cons a list of lists onto an empty list of lists
+    "[[1], [2, 3]] ++ [[4, 5], [6]]"     -- Concatenating two lists of lists
   ]
+
 
 -------------------------------------------------------------------------------
 -- Types

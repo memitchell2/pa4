@@ -7,6 +7,7 @@ import Prelude hiding (foldr)
 
 import Type
 import Syntax
+import Debug.Trace (trace)
 
 import Control.Monad.State
     ( MonadState(put, get), foldM, replicateM, evalState, State )
@@ -60,11 +61,11 @@ class Substitutable a where
 --         (all cases are done except TArray)
 instance Substitutable Type where
   apply :: Subst -> Type -> Type
-  apply _ (TCon a)       = TCon a
-  apply s t@(TVar a)     = Map.findWithDefault t a s
-  apply s (t1 `TArrow` t2) = apply s t1 `TArrow` apply s t2
+  apply s t@(TCon a) = trace ("Applying substitution to TCon: " ++ show t ++ " with " ++ show s) t
+  apply s t@(TVar a) = trace ("Applying substitution to TVar: " ++ show t ++ " with " ++ show s) $ Map.findWithDefault t a s
+  apply s (t1 `TArrow` t2) = trace ("Applying substitution to TArrow with " ++ show s) $ apply s t1 `TArrow` apply s t2
   -- TODO-1: apply a substitution to an array
-  apply s (TArray t) = TArray (apply s t)
+  apply s (TArray t) = trace ("Applying substitution to TArray with " ++ show s) $ TArray (apply s t)
 
   ftv TCon{}         = Set.empty
   ftv (TVar a)       = Set.singleton a
@@ -96,20 +97,33 @@ nullSubst :: Subst
 nullSubst = Map.empty
 
 compose :: Subst -> Subst -> Subst
-s1 `compose` s2 = Map.map (apply s1) s2 `Map.union` s1
+compose s1 s2 = trace ("Composing substitutions: " ++ show s1 ++ " with " ++ show s2) $
+                Map.map (apply s1) s2 `Map.union` s1
 
 unify ::  Type -> Type -> Infer Subst
 unify (l `TArrow` r) (l' `TArrow` r')  = do
+  trace ("Unifying arrow types: " ++ show l ++ " with " ++ show l') $ return ()
+
   s1 <- unify l l'
   s2 <- unify (apply s1 r) (apply s1 r')
+  trace ("Resulting substitution in arrow types: " ++ show s1 ++ " and " ++ show s2) $ return ()
+
   return (s2 `compose` s1)
 
-unify (TVar a) t = bind a t
-unify t (TVar a) = bind a t
-unify (TCon a) (TCon b) | a == b = return nullSubst
-unify t1 t2 = throwError $ UnificationFail t1 t2
+unify (TVar a) t = trace ("Unifying TVar: " ++ show a ++ " with " ++ show t) $ bind a t
+unify t (TVar a) = trace ("Unifying TVar: " ++ show t ++ " with " ++ show a) $ bind a t
+unify (TCon a) (TCon b) | a == b = trace ("Unifying TCon: " ++ show a ++ " with " ++ show b) $ return nullSubst
+unify t1 t2 = trace ("Unification failed for: " ++ show t1 ++ " with " ++ show t2) $ throwError $ UnificationFail t1 t2
 -- TODO-1: Unify the TArray type
-unify (TArray t1) (TArray t2) = unify t1 t2
+unify (TArray t1) (TArray t2) = do
+  let t1' = apply nullSubst t1
+  let t2' = apply nullSubst t2
+  trace ("Unifying TArray elements: " ++ show t1' ++ " with " ++ show t2') $ do
+    result <- unify t1' t2'
+    trace ("Result of TArray unification: " ++ show result) $ return result
+
+unify t1 t2 = trace ("Unification failed for: " ++ show t1 ++ " with " ++ show t2) $
+              throwError $ UnificationFail t1 t2
 
 bind ::  TVar -> Type -> Infer Subst
 bind a t
@@ -193,17 +207,45 @@ infer env ex = case ex of
   Op Cons head tail -> do
     (s1, headType) <- infer env head
     (s2, tailType) <- infer (apply s1 env) tail
-    s3 <- unify (TArray headType) tailType
+    s3 <- trace ("Cons headType: " ++ show headType ++ ", tailType: " ++ show tailType) $
+          unify (TArray headType) tailType
     return (s3 `compose` s2 `compose` s1, TArray headType)
 
   -- TODO-CAT: Handle the Concat operator
   Op Concat left right -> do
+    -- Infer types for `left` and `right`
     (s1, leftType) <- infer env left
     (s2, rightType) <- infer (apply s1 env) right
     elemType <- fresh
-    s3 <- unify (TArray elemType) leftType
-    s4 <- unify (TArray elemType) rightType
-    return (s4 `compose` s3 `compose` s2 `compose` s1, TArray elemType)
+
+    trace ("Concat leftType: " ++ show leftType ++ ", rightType: " ++ show rightType ++ ", initial elemType: " ++ show elemType) $ return ()
+
+    -- First unification with `leftType`
+    let appliedLeftType = apply (s2 `compose` s1) leftType
+    s3 <- unify (TArray elemType) appliedLeftType
+    let elemTypeAfterS3 = apply (s3 `compose` s2 `compose` s1) elemType
+
+    trace ("elemType after unifying with leftType: " ++ show elemTypeAfterS3) $ return ()
+
+    -- Apply all current substitutions to `rightType`
+    let appliedRightType = apply (s3 `compose` s2 `compose` s1) rightType
+    trace ("rightType after applying substitutions: " ++ show appliedRightType) $ return ()
+
+    -- Second unification with `rightType`
+    s4 <- unify (TArray elemTypeAfterS3) appliedRightType
+    let finalElemType = apply (s4 `compose` s3 `compose` s2 `compose` s1) elemType
+
+    trace ("Final elemType after unifying with rightType: " ++ show finalElemType) $ return ()
+
+    -- Return the composed substitution and the resulting type
+    return (s4 `compose` s3 `compose` s2 `compose` s1, TArray finalElemType)
+
+
+
+
+
+
+
 
   Op op e1 e2 -> do
     inferPrim env [e1, e2] (ops op)
