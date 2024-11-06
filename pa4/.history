@@ -1,0 +1,15 @@
+:q
+:q
+quickCheckWithReplay (17601609730057574392, 1467977826349126133) prop_parseSerializeList
+>>> quickCheckWithReplay (17601609730057574392, 1467977826349126133) prop_parseSerializeList
+import Test.QuickCheck
+:q
+let f y = x + y
+let x = 3
+let x = 3 + 2
+:q
+let x = 3 + 2
+:q
+help
+exit
+test
