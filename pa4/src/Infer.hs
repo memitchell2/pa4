@@ -214,15 +214,21 @@ infer env ex = case ex of
     -- Infer the types of `left` and `right` lists
     (s1, leftType) <- infer env left
     (s2, rightType) <- infer (apply s1 env) right
-    
+
     -- Create a fresh type variable for the element type of both lists
     elemType <- fresh
-    
-    -- Unify both leftType and rightType as lists of the same element type
-    s3 <- unify (TArray elemType) (apply s2 leftType)
-    s4 <- unify (TArray elemType) (apply (s3 `compose` s2) rightType)
-    
-    -- Return the final composed substitution and resulting list type
+
+    -- Check if `left` is non-empty, unify if necessary
+    s3 <- case leftType of
+        TArray _ -> unify (TArray elemType) (apply s2 leftType)
+        _        -> return nullSubst
+
+    -- Check if `right` is non-empty, unify if necessary
+    s4 <- case rightType of
+        TArray _ -> unify (TArray elemType) (apply (s3 `compose` s2) rightType)
+        _        -> return nullSubst
+
+    -- Combine all substitutions and return the final type
     let finalSubst = s4 `compose` s3 `compose` s2 `compose` s1
     return (finalSubst, TArray (apply finalSubst elemType))
 

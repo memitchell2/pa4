@@ -49,13 +49,31 @@ import System.Console.Repline
 -- Define some test expressions for lists, cons, and concat operations
 testExpressions :: [L.Text]
 testExpressions = [
-    "1 : [2, 3]",                 -- Cons with integers
-    "True : [False, True]",       -- Cons with booleans
-    "[] : []",                    -- Cons on two empty lists (should handle generics)
-    "1 : []",                     -- Cons with integer and empty list
-    "[1, 2] ++ [3, 4]",           -- Concat with integers
-    "[True] ++ [False, True]",    -- Concat with booleans
-    "[] ++ []"                    -- Concat on two empty lists
+    -- Simple integer list concatenation
+    "[1, 2] ++ [3, 4]",                  -- Concatenating two integer lists
+    "[] ++ [1, 2]",                      -- Concatenating an empty list with an integer list
+    "[1, 2] ++ []",                      -- Concatenating an integer list with an empty list
+    "[] ++ []",                          -- Concatenating two empty lists
+
+    -- List of lists concatenation
+    "[[1, 2], [3, 4]] ++ [[5, 6], [7, 8]]",  -- Concatenating lists of integer lists
+    "[[1, 2], [3, 4]] ++ []",                -- Concatenating a list of lists with an empty list
+    "[] ++ [[1, 2], [3, 4]]",                -- Concatenating an empty list with a list of lists
+
+    -- Mixed lists (should fail if types don't match)
+    "[1, 2] ++ [True, False]",               -- Concatenating lists of different types (int and bool)
+    "[[1], [2, 3]] ++ [[True], [False]]",    -- Concatenating lists of lists with different element types (int and bool)
+
+    -- Nested lists concatenation
+    "[[1], [2, 3]] ++ [[4], [5, 6]]",        -- Concatenating compatible lists of lists
+
+    -- Empty list concatenation with type inference
+    "[] ++ []",                              -- Should infer a generic type
+    "[[True, False]] ++ []",                 -- Concatenating a list of booleans with an empty list
+
+    -- Concatenation with inferred generic types
+    "[1, 2] ++ []",             -- Using a variable to infer type in concatenation
+    "[] ++ [1, 2]"              -- Concatenating with an empty list using a let-bound variable
   ]
 
 

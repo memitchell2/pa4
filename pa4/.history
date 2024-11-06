@@ -1,6 +1,17 @@
 :q
 :q
 :q
+[2] ++ ([] :: [Int]) 
+:q
+x + []
+let x = []
+[] ++ []
+:q
+:q
+:q
+:q
+:q
+:q
 :q
 quickCheckWithReplay (17601609730057574392, 1467977826349126133) prop_parseSerializeList
 >>> quickCheckWithReplay (17601609730057574392, 1467977826349126133) prop_parseSerializeList
